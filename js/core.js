@@ -2,49 +2,9 @@
 (function(){
 'use strict';
 const RL = window.RL = {};
-RL.OPEN = 10*60; RL.CLOSE = 22*60;
-RL.BRANCHES = [
-  {id:'bkk', name:'สาขากรุงเทพ', short:'กรุงเทพ', addr:'ซอยทองหล่อ 10 · กรุงเทพฯ', dist:'1.5 กม.', w:1.25},
-  {id:'cnx', name:'สาขาเชียงใหม่', short:'เชียงใหม่', addr:'ถนนนิมมานเหมินท์ ซอย 9 · เชียงใหม่', dist:'4.2 กม.', w:1.0},
-  {id:'hkt', name:'สาขาภูเก็ต', short:'ภูเก็ต', addr:'ถนนถลาง · เมืองภูเก็ต', dist:'10.5 กม.', w:0.85}
-];
-RL.ROOMS = [
-  {id:'r1', code:'R1', name:'ห้องลานนา'},
-  {id:'r2', code:'R2', name:'ห้องบัวหลวง'},
-  {id:'r3', code:'R3', name:'ห้องจำปา'}
-];
-RL.SERVICES = [
-  {id:'thai',   name:'นวดไทย',            sub:'ดั้งเดิมเพื่อการผ่อนคลาย', dur:60, price:500, w:4},
-  {id:'oil',    name:'นวดน้ำมัน',          sub:'บำรุงร่างกาย นุ่มลึก',     dur:90, price:800, w:3},
-  {id:'office', name:'ออฟฟิศซินโดรม',     sub:'คลายปวดคอ บ่า ไหล่',      dur:90, price:900, w:2},
-  {id:'foot',   name:'สปาเท้า',           sub:'ผ่อนคลายเท้าและน่อง',     dur:60, price:450, w:2}
-];
-RL.ADDONS = [
-  {id:'oilup', name:'อัปเกรดน้ำมันหอมระเหย', price:150},
-  {id:'herb',  name:'ประคบสมุนไพรร้อน',      price:200},
-  {id:'scrub', name:'ขัดผิวเท้า',            price:150}
-];
-RL.TIERS = [
-  {id:'none', name:'ไม่มีส่วนลด', pct:0},
-  {id:'member', name:'สมาชิก', pct:10},
-  {id:'vip', name:'สมาชิก VIP', pct:15}
-];
-RL.COMM_RATE = 0.30;
-RL.THER = [
-  ['เมย์',2,0],['ดา',3,1],['นิด',1,2],
-  ['ปาน',2,3],['แพร',2,0],['มะลิ',1,1],
-  ['นุ่น',3,2],['ฟ้า',2,3],['อ้อม',1,0]
-];
-RL.THERAPISTS = [];
-RL.BRANCHES.forEach((b,bi)=>{ for(let i=0;i<3;i++){ const t=RL.THER[bi*3+i];
-  RL.THERAPISTS.push({id:b.id+'-'+(i+1), branch:b.id, name:t[0], level:t[1], av:t[2]}); }});
+const CAT = window.RL_CATALOG;  // ข้อมูลหลักร่วมกับเซิร์ฟเวอร์ (js/catalog.js)
+['OPEN','CLOSE','COMM_RATE','PTS_DIV','VIP_AT','BRANCHES','ROOMS','SERVICES','ADDONS','TIERS','THERAPISTS'].forEach(k=>{ RL[k]=CAT[k]; });
 RL.PAY = {cash:'เงินสด', qr:'พร้อมเพย์ QR', card:'บัตร'};
-RL.ROLES = {
-  owner:   {name:'เจ้าของร้าน',   views:['customer','pos','dash'], branchLock:null, checkout:true,  dashAll:true,  note:'เจ้าของร้าน: ดูได้ทุกมุมมอง ทุกสาขา และสลับสาขาได้'},
-  manager: {name:'ผู้จัดการสาขา', views:['customer','pos','dash'], branchLock:'bkk', checkout:true, dashAll:false, note:'ผู้จัดการสาขา: ดู POS และแดชบอร์ดเฉพาะสาขากรุงเทพ (สลับสาขาไม่ได้)'},
-  cashier: {name:'แคชเชียร์',     views:['customer','pos'],        branchLock:'bkk', checkout:true, dashAll:false, note:'แคชเชียร์: ใช้ POS รับชำระเงินสาขากรุงเทพ · ไม่เห็นแดชบอร์ดรายได้'},
-  therapist:{name:'หมอนวด',       views:['customer','pos'],        branchLock:'bkk', checkout:false, dashAll:false, therapist:'bkk-1', note:'หมอนวด (คุณเมย์): เห็นเฉพาะคิวของตัวเอง กดเริ่มบริการได้ · ไม่มีสิทธิ์รับชำระเงินและไม่เห็นยอดขาย'}
-};
 
 /* ---------- ตัวช่วย ---------- */
 const TH_D=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
@@ -104,8 +64,9 @@ RL.massageScene = (id) => '<svg class="scene" viewBox="0 0 120 90" aria-hidden="
   '<g stroke="#C99A1E" stroke-width="1.100" fill="none"><path d="M12 10c8 2 14 8 14 16M12 10c1 7-3 12-9 14"/></g></svg>';
 
 /* ---------- ฐานข้อมูลใน localStorage ---------- */
-const DB_KEY='roselanna_demo_db_v1', UI_KEY='roselanna_demo_ui_v1', DB_VER=1;
-RL.db = null; RL.ui = {role:'owner', view:'customer', branch:'bkk', dashBranch:'all', dashPeriod:'today'};
+const DB_KEY='roselanna_demo_db_v2', UI_KEY='roselanna_demo_ui_v2', DB_VER=2;
+RL.DB_KEY=DB_KEY;
+RL.db = null; RL.ui = {view:'pos', branch:'bkk', dashBranch:'all', dashPeriod:'today'};
 RL.save = () => { try{ localStorage.setItem(DB_KEY, JSON.stringify(RL.db)); }catch(e){} };
 RL.saveUi = () => { try{ localStorage.setItem(UI_KEY, JSON.stringify(RL.ui)); }catch(e){} };
 RL.nextId = prefix => { RL.db.seq = (RL.db.seq||1000)+1; return prefix+RL.db.seq; };

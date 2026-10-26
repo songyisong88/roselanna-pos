@@ -1,1 +1,10 @@
 __pycache__/
+server/node_modules/
+server/data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+.env
+*.log
+node_modules/

@@ -11,7 +11,7 @@ C.render = function(){
   el().innerHTML =
    '<div class="phone-wrap"><div class="phone">'+
    '<div class="line-head"><button class="icon-btn" data-c="back" aria-label="ย้อนกลับ">'+I('chev-l')+'</button>'+
-   '<div class="line-av"><img src="assets/logo-emblem.svg" alt="" width="30" height="31"></div>'+
+   '<div class="line-av"><img src="../assets/logo-emblem.svg" alt="" width="30" height="31"></div>'+
    '<div class="line-title"><b>ROSELANNA</b><span class="verified">'+I('check')+'</span><small>Official Account · จำลองหน้าจอใน LINE</small></div>'+
    '<span class="line-act">'+I('phone')+I('dots')+'</span></div>'+
    '<div class="line-body">'+
@@ -26,7 +26,7 @@ C.booking = function(){
   const days=[...Array(7)].map((_,i)=>R.dayKey(R.addDays(new Date(),i)));
   const day=days[s.off];
   let h='';
-  h+='<div class="bubble-row"><div class="line-av sm"><img src="assets/logo-emblem.svg" alt="" width="22" height="23"></div><div class="bubble">สวัสดีค่ะ '+I('sparkle','g')+'<br>ยินดีต้อนรับสู่ ร้านนวดและสุขภาพ <b>โรเซลานนา</b><br>จองคิวผ่อนคลายแบบไทยได้ง่าย ๆ ทุกสาขา<small>'+R.hm(new Date().getHours()*60+new Date().getMinutes())+' น.</small></div></div>';
+  h+='<div class="bubble-row"><div class="line-av sm"><img src="../assets/logo-emblem.svg" alt="" width="22" height="23"></div><div class="bubble">สวัสดีค่ะ '+I('sparkle','g')+'<br>ยินดีต้อนรับสู่ ร้านนวดและสุขภาพ <b>โรเซลานนา</b><br>จองคิวผ่อนคลายแบบไทยได้ง่าย ๆ ทุกสาขา<small>'+R.hm(new Date().getHours()*60+new Date().getMinutes())+' น.</small></div></div>';
   // สาขา
   h+='<section class="card"><h3>'+I('pin')+'เลือกสาขา</h3>'+R.BRANCHES.map(b=>
     '<button class="row-btn '+(s.branch===b.id?'sel':'')+'" data-c="branch" data-v="'+b.id+'" aria-pressed="'+(s.branch===b.id)+'"><span class="grow"><b>'+b.name+'</b><small>'+b.addr+'</small></span><span class="chip">'+I('pin')+b.dist+'</span>'+(s.branch===b.id?'<span class="tick">'+I('check')+'</span>':I('chev-r','muted'))+'</button>').join('')+'</section>';
@@ -43,8 +43,9 @@ C.booking = function(){
   h+='<section class="card"><h3>'+I('clock')+'เลือกวันและเวลา</h3><div class="date-nav"><button class="icon-btn" data-c="off" data-v="-1" '+(s.off===0?'disabled':'')+' aria-label="วันก่อนหน้า">'+I('chev-l')+'</button><b id="dateLbl">'+R.thDate(day)+'</b><button class="icon-btn" data-c="off" data-v="1" '+(s.off===6?'disabled':'')+' aria-label="วันถัดไป">'+I('chev-r')+'</button></div>';
   if(!br||!sv){ h+='<p class="hint">เลือกสาขาและบริการก่อน เพื่อดูเวลาที่ว่าง</p>'; }
   else {
-    const slots=R.slotsFor(br.id,sv,day,s.ther);
-    h+='<div class="slots">'+slots.map(x=>{
+    const slots=R.store.slots(br.id,sv,day,s.ther);
+    if(!slots) h+='<p class="hint" id="slotsLoading">กำลังโหลดเวลาที่ว่าง…</p>';
+    else h+='<div class="slots">'+slots.map(x=>{
       const k=x.start, sel=s.time===k;
       return '<button class="slot '+(sel?'sel':'')+(x.ok?'':' off')+'" data-c="time" data-v="'+k+'" '+(x.ok?'':'disabled')+' aria-pressed="'+sel+'" aria-label="'+R.hm(k)+(x.ok?'':(x.past?' ผ่านไปแล้ว':' ถูกจองแล้ว'))+'">'+R.hm(k)+'</button>'; }).join('')+'</div>'+
      '<div class="legend"><span><i class="dot free"></i>ว่าง</span><span><i class="dot sel"></i>ที่เลือก</span><span><i class="dot off"></i>ถูกจองแล้ว/ผ่านไปแล้ว</span></div>';
@@ -61,7 +62,7 @@ C.booking = function(){
 
 C.success = function(){
   const b=C.st.done, br=R.branch(b.branch), sv=R.service(b.service), th=R.ther(b.therapist);
-  const gross=R.priceOf(b), total=Math.round(gross*0.9), pts=Math.floor(total/10);
+  const gross=R.priceOf(b), total=Math.round(gross*0.9), pts=Math.floor(total/10); // ประมาณการ (สมาชิก 10%)
   return '<section class="card ok-card" id="successCard"><div class="ok-mark">'+I('check')+'</div><h2>จองคิวสำเร็จ</h2><p class="muted">แสดงรหัสนี้กับพนักงานหน้าร้าน</p><div class="code" id="bkCode">'+b.id+'</div>'+
     '<div class="sum-grid"><span>สาขา</span><b>'+br.name+'</b><span>บริการ</span><b>'+sv.name+' '+sv.dur+' นาที</b><span>หมอนวด</span><b>คุณ'+th.name+'</b><span>วัน-เวลา</span><b>'+R.thDate(b.day)+' · '+R.hm(b.start)+'–'+R.hm(b.start+b.dur)+' น.</b></div></section>'+
     '<section class="card receipt"><h3>'+I('receipt')+'ตัวอย่างใบเสร็จ / คะแนนสะสม</h3><div class="rc-line"><span>'+sv.name+' '+sv.dur+' นาที</span><b>'+R.baht(gross)+'</b></div><div class="rc-line disc"><span>ส่วนลดสมาชิก 10%</span><b>−'+R.baht(gross-total)+'</b></div><div class="rc-line tot"><span>ยอดโดยประมาณ</span><b>'+R.baht(total)+'</b></div>'+
@@ -85,14 +86,19 @@ C.points = function(){
    '<section class="card"><h3>'+I('list')+'ประวัติคะแนน</h3>'+pt.history.map(h=>'<div class="rc-line"><span>'+E(h.t)+'<small class="blk">'+R.thDateShort(h.day)+'</small></span><b>'+E(h.d)+'</b></div>').join('')+'</section>';
 };
 
-C.confirm = function(){
-  const s=C.st; const br=R.branch(s.branch), sv=R.service(s.service); const day=R.dayKey(R.addDays(new Date(),s.off));
-  const res=R.pick(br.id,day,s.time,sv.dur,s.ther);
-  if(!res||(day===R.today()&&s.time<=R.nowMin())){ R.toast('ขออภัย ช่วงเวลานี้ถูกจองไปแล้ว กรุณาเลือกเวลาอื่น'); s.time=null; C.render(); return; }
-  const b={id:R.nextId('RL-'),branch:br.id,day,start:s.time,dur:sv.dur,service:sv.id,room:res.room,therapist:res.therapist,status:'booked',cust:'me',custName:'คุณลูกค้า LINE',member:true,src:'line',addons:[],created:Date.now()};
-  R.db.bookings.push(b); R.save(); s.done=b; s.time=null; C.render(); window.scrollTo(0,0);
+C.busy=false;
+C.confirm = async function(){
+  const s=C.st; if(C.busy) return; const br=R.branch(s.branch), sv=R.service(s.service); const day=R.dayKey(R.addDays(new Date(),s.off));
+  C.busy=true;
+  try{ const b=await R.store.book({branch:br.id,service:sv.id,day,start:s.time,therapist:s.ther}); s.done=b; s.time=null; }
+  catch(err){ R.toast(err.status===409||err.code==='slot_taken'?'ขออภัย ช่วงเวลานี้ถูกจองไปแล้ว กรุณาเลือกเวลาอื่น':(err.message||'จองไม่สำเร็จ')); s.time=null; }
+  C.busy=false; C.render(); window.scrollTo(0,0);
 };
 
+C.cancel = async function(id){
+  try{ await R.store.cancelMine(id); R.toast('ยกเลิกคิวแล้ว'); }catch(err){ R.toast(err.message||'ยกเลิกไม่สำเร็จ'); }
+  const y=window.scrollY; C.render(); window.scrollTo(0,y);
+};
 C.bind = function(){
   el().addEventListener('click',e=>{
     const t=e.target.closest('[data-c]'); if(!t||t.disabled) return; const a=t.dataset.c, v=t.dataset.v, s=C.st;
@@ -105,9 +111,8 @@ C.bind = function(){
     else if(a==='confirm'){ return C.confirm(); }
     else if(a==='again'){ s.done=null; }
     else if(a==='gopts'){ s.tab='pts'; s.done=null; }
-    else if(a==='cancel'){ const b=R.db.bookings.find(x=>x.id===v); if(b){ b.status='cancelled'; R.save(); R.toast('ยกเลิกคิวแล้ว'); } }
     else if(a==='back'){ s.done=null; s.tab='book'; }
-    const y=window.scrollY; C.render(); window.scrollTo(0,(a==='tab'||a==='again'||a==='gopts'||a==='back')?0:y);
+    const y=window.scrollY; if(a==='cancel') return C.cancel(v); C.render(); window.scrollTo(0,(a==='tab'||a==='again'||a==='gopts'||a==='back')?0:y);
   });
 };
 })();

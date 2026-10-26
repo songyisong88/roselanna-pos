@@ -4,7 +4,7 @@
 const R=window.RL, E=R.esc, I=R.ico;
 const P = R.pos = {st:{sel:null, dayOff:0, receipt:null, walk:null}};
 const el = () => document.getElementById('view-pos');
-const role = () => R.ROLES[R.ui.role];
+const role = () => R.curRole();
 const COLS = 12;
 
 P.branchId = () => role().branchLock || R.ui.branch;
@@ -24,9 +24,9 @@ P.render = function(){
   const keepScroll = el().querySelector('.sch-scroll'); const sl = keepScroll?keepScroll.scrollLeft:null;
   const list=P.list(); const sales=P.salesToday(); const totalToday=sales.reduce((a,s)=>a+s.total,0);
   let h='<div class="pos">';
-  h+='<header class="pos-head"><img class="logo-h" src="assets/logo-horizontal.svg" alt="ROSELANNA — Thai Massage &amp; Wellness">'+
+  h+='<header class="pos-head"><img class="logo-h" src="../assets/logo-horizontal.svg" alt="ROSELANNA — Thai Massage &amp; Wellness">'+
    '<label class="pill-sel">'+I('pin')+'<select id="posBranch" '+(r.branchLock?'disabled':'')+' aria-label="เลือกสาขา">'+R.BRANCHES.map(b=>'<option value="'+b.id+'" '+(b.id===bid?'selected':'')+'>'+b.name+'</option>').join('')+'</select>'+(r.branchLock?I('lock','lk'):I('chev-d'))+'</label>'+
-   '<div class="head-right"><div class="date-box">'+I('calendar')+'<div><small>'+(st.dayOff===0?'วันนี้':R.thDow(day))+'</small><b>'+R.thDateShort(day)+'</b></div></div><span class="who-pill" title="'+r.name+'">'+I('user')+'<span>'+r.name+'</span></span></div></header>';
+   '<div class="head-right"><div class="date-box">'+I('calendar')+'<div><small>'+(st.dayOff===0?'วันนี้':R.thDow(day))+'</small><b>'+R.thDateShort(day)+'</b></div></div></div></header>';
   h+='<div class="pos-main"><section class="card sched">';
   h+='<div class="card-head">'+I('calendar')+'<h2>ตารางห้องวันนี้</h2><span class="grow"></span>'+
      '<button class="icon-btn sm" data-p="day" data-v="-1" '+(st.dayOff===0?'disabled':'')+' aria-label="วันก่อนหน้า">'+I('chev-l')+'</button><button class="icon-btn sm" data-p="day" data-v="1" '+(st.dayOff===3?'disabled':'')+' aria-label="วันถัดไป">'+I('chev-r')+'</button></div>';
@@ -41,7 +41,7 @@ P.render = function(){
         '<button class="add-cell" data-p="walkroom" data-v="'+rm.id+'" aria-label="เพิ่มลูกค้าเดินเข้า '+rm.code+'" '+(r.therapist?'hidden':'')+'>'+I('plus')+'</button></div>').join('')+
      '<div class="now-line" id="nowLine" hidden><span>ตอนนี้</span></div></div></div></div>';
   h+='<div class="sch-legend"><span><i class="sw act"></i>กำลังให้บริการ</span><span><i class="sw up"></i>คิวที่จองไว้ (สีตามห้อง)</span><span><i class="sw done"></i>ชำระแล้ว</span><span>'+I('clock')+'เวลา 24 ชม. · ช่องละ 1 ชั่วโมง</span></div>';
-  if(r.therapist) h+='<p class="role-hint">'+I('info')+'แสดงเฉพาะคิวของคุณเมย์ · กดคิวแล้วเริ่มบริการได้ แต่ไม่มีสิทธิ์รับชำระเงิน</p>';
+  if(r.therapist) h+='<p class="role-hint">'+I('info')+'แสดงเฉพาะคิวของคุณ'+E(r.therapistName||'')+' · กดคิวแล้วเริ่มบริการได้ แต่ไม่มีสิทธิ์รับชำระเงิน</p>';
   h+='</section>';
   h+='<aside class="card checkout" id="coPanel">'+P.panel()+'</aside></div></div>';
   el().innerHTML=h;
@@ -103,7 +103,7 @@ P.panel = function(){
 P.receipt = function(b,s){
   if(!s) return '<div class="empty"><b>ชำระแล้ว</b></div>';
   const sv=R.service(s.service), th=R.ther(s.therapist);
-  const pts=b.cust==='me'?Math.floor(s.total/10):0;
+  const pts=s.points||0;
   return '<div class="paid-ok" id="paidOk"><div class="ok-mark">'+I('check')+'</div><h3>ชำระเงินสำเร็จ</h3><small>บันทึกยอดขายแล้ว · '+R.PAY[s.pay]+'</small></div>'+
    '<div class="totals"><div class="rc-line"><span>'+sv.name+' '+sv.dur+' นาที</span><b>'+R.baht(sv.price)+'</b></div>'+(s.addons||[]).map(id=>{const a=R.ADDONS.find(x=>x.id===id);return '<div class="rc-line"><span>'+a.name+'</span><b>'+R.baht(a.price)+'</b></div>';}).join('')+
    '<div class="rc-line disc"><span>ส่วนลดสมาชิก '+s.pct+'%</span><b>−'+R.baht(s.gross-s.total)+'</b></div><div class="rc-line tot"><span>ยอดสุทธิ</span><b>'+R.baht(s.total)+'</b></div>'+
@@ -142,28 +142,36 @@ P.tick = function(){
   const nl=document.getElementById('nowLine'); if(nl){ const nm=R.nowMin(); const show=P.dayKey()===R.today()&&nm>=R.OPEN&&nm<=R.CLOSE; nl.hidden=!show; if(show) nl.style.left=((nm-R.OPEN)/720*100)+'%'; }
 };
 
+P.busy = false;
+P.act = async function(a, v, b){
+  const S=R.store;
+  if(a==='start'&&b){ await S.start(b.id); R.toast('เริ่มบริการและจับเวลาแล้ว'); }
+  else if(a==='plus10'&&b){ await S.plus10(b.id); }
+  else if(a==='addon'&&b){ const set=new Set(b.addons||[]); set.has(v)?set.delete(v):set.add(v); await S.patch(b.id,{addons:[...set]}); }
+  else if(a==='pay'&&b){ await S.patch(b.id,{pay:v}); }
+  else if(a==='paynow'&&b&&b.status==='running'&&role().checkout){ const r=await S.checkout(b.id,{pay:b.pay||'cash'}); R.toast('บันทึกยอดขายแล้ว '+R.baht(r.sale.total)); }
+};
 P.bind = function(){
-  el().addEventListener('click',e=>{
-    const t=e.target.closest('[data-p]'); if(!t||t.disabled) return; const a=t.dataset.p, v=t.dataset.v, st=P.st;
+  el().addEventListener('click',async e=>{
+    const t=e.target.closest('[data-p]'); if(!t||t.disabled||P.busy) return; const a=t.dataset.p, v=t.dataset.v, st=P.st;
     const b=st.sel&&R.db.bookings.find(x=>x.id===st.sel);
     if(a==='sel'){ st.sel=v; }
     else if(a==='back'){ st.sel=null; }
     else if(a==='day'){ st.dayOff=Math.max(0,Math.min(3,st.dayOff+(+v))); st.sel=null; }
     else if(a==='walk'){ return P.openWalk(); }
     else if(a==='walkroom'){ return P.openWalk(v); }
-    else if(a==='start'&&b){ b.status='running'; b.startedAt=Date.now(); b.endsAt=b.startedAt+b.dur*60000; R.save(); R.toast('เริ่มบริการและจับเวลาแล้ว'); }
-    else if(a==='plus10'&&b){ b.endsAt-=10*60000; R.save(); }
-    else if(a==='addon'&&b){ const s=new Set(b.addons||[]); s.has(v)?s.delete(v):s.add(v); b.addons=[...s]; R.save(); }
-    else if(a==='pay'&&b){ b.pay=v; R.save(); }
-    else if(a==='paynow'&&b&&b.status==='running'&&role().checkout){ P.pay(b); }
+    else { P.busy=true; try{ await P.act(a,v,b); }catch(err){ R.toast(err.message||'ทำรายการไม่สำเร็จ'); try{ await R.store.refreshPos(P.branchId()); }catch(e2){} } P.busy=false; }
     P.render();
     if(window.innerWidth<=860){ if(a==='sel'){ const c=document.getElementById('coPanel'); c&&c.scrollIntoView({behavior:'smooth',block:'start'}); } else if(a==='back'){ el().scrollIntoView({block:'start'}); } }
   });
-  el().addEventListener('change',e=>{
+  el().addEventListener('change',async e=>{
     const b=P.st.sel&&R.db.bookings.find(x=>x.id===P.st.sel);
-    if(e.target.id==='posBranch'){ R.ui.branch=e.target.value; R.saveUi(); P.st.sel=null; P.render(); }
-    else if(e.target.id==='coDisc'&&b){ b.disc=+e.target.value; R.save(); P.render(); }
-    else if(e.target.id==='coTher'&&b){ b.therapist=e.target.value; R.save(); P.render(); }
+    try{
+      if(e.target.id==='posBranch'){ R.ui.branch=e.target.value; R.saveUi(); P.st.sel=null; await R.store.refreshPos(P.branchId()); }
+      else if(e.target.id==='coDisc'&&b){ await R.store.patch(b.id,{disc:+e.target.value}); }
+      else if(e.target.id==='coTher'&&b){ await R.store.patch(b.id,{therapist:e.target.value}); }
+    }catch(err){ R.toast(err.message||'ทำรายการไม่สำเร็จ'); try{ await R.store.refreshPos(P.branchId()); }catch(e2){} }
+    P.render();
   });
   document.getElementById('modal').addEventListener('click',e=>{
     const t=e.target.closest('[data-w]'); const w=P.st.walk; if(!t||!w||t.disabled) return; const a=t.dataset.w;
@@ -175,20 +183,11 @@ P.bind = function(){
   document.getElementById('modal').addEventListener('change',e=>{ const w=P.st.walk; if(!w) return;
     if(e.target.id==='wRoom') w.room=e.target.value; else if(e.target.id==='wTher') w.ther=e.target.value; else if(e.target.id==='wTier') w.tier=+e.target.value; });
 };
-P.createWalk = function(){
-  const w=P.st.walk, bid=P.branchId(), day=R.today(), nm=Math.floor(R.nowMin()), sv=R.service(w.svc);
-  if(R.bookingsOn(bid,day).some(b=>b.room===w.room&&b.start<nm+sv.dur&&nm<b.start+b.dur)||!R.therFree(w.ther,day,nm,nm+sv.dur)){ R.toast('ห้องหรือหมอนวดไม่ว่างแล้ว'); return P.walkRefresh(); }
-  const now=Date.now();
-  const b={id:R.nextId('WK-'),branch:bid,day,start:nm,dur:sv.dur,service:sv.id,room:w.room,therapist:w.ther,status:'running',startedAt:now,endsAt:now+sv.dur*60000,cust:'walk',custName:w.name.trim()||'ลูกค้าเดินเข้า',member:+w.tier>0,disc:+w.tier,src:'walkin',addons:[]};
-  R.db.bookings.push(b); R.save(); R.closeModal(); P.st.walk=null; P.st.sel=b.id; P.st.dayOff=0; P.render(); R.toast('เพิ่มลูกค้าเดินเข้าและเริ่มจับเวลาแล้ว');
-};
-P.pay = function(b){
-  const sv=R.service(b.service), addonTotal=(b.addons||[]).reduce((a,id)=>a+R.ADDONS.find(x=>x.id===id).price,0);
-  const gross=sv.price+addonTotal, pct=P.discOf(b), total=gross-Math.round(gross*pct/100);
-  R.db.saleSeq=(R.db.saleSeq||R.db.sales.length)+1;
-  const sale={id:'S'+R.db.saleSeq,branch:b.branch,day:R.today(),ts:Date.now(),service:b.service,therapist:b.therapist,gross,addons:(b.addons||[]).slice(),pct,total,pay:b.pay||'cash',commission:Math.round(total*R.COMM_RATE),booking:b.id};
-  R.db.sales.push(sale); b.status='paid'; b.paidAt=sale.ts; b.saleId=sale.id; b.disc=pct;
-  if(b.cust==='me'){ const pts=Math.floor(total/10); R.db.points.total+=pts; R.db.points.history.unshift({t:'ซื้อบริการ '+sv.name+' '+sv.dur+' นาที',d:'+'+pts,day:R.today()}); }
-  R.save(); R.toast('บันทึกยอดขายแล้ว '+R.baht(total));
+P.createWalk = async function(){
+  const w=P.st.walk, bid=P.branchId();
+  try{
+    const b=await R.store.walkin({branch:bid, service:w.svc, room:w.room, therapist:w.ther, tier:+w.tier, name:(w.name||'').trim()});
+    R.closeModal(); P.st.walk=null; P.st.sel=b.id; P.st.dayOff=0; P.render(); R.toast('เพิ่มลูกค้าเดินเข้าและเริ่มจับเวลาแล้ว');
+  }catch(err){ R.toast(err.message||'ห้องหรือหมอนวดไม่ว่างแล้ว'); try{ await R.store.refreshPos(bid); }catch(e2){} P.walkRefresh(); }
 };
 })();
