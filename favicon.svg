@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="270 50 510 530" role="img" aria-label="ROSELANNA emblem"><title>ROSELANNA emblem</title><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E8BE4A"/><stop offset=".5" stop-color="#C99A1E"/><stop offset="1" stop-color="#A97E10"/></linearGradient>
+<mask id="rib"><rect x="0" y="0" width="1100" height="700" fill="#fff"/><path d="M527 205 L527 305" stroke="#000" stroke-width="7" stroke-linecap="round"/><path d="M374 413 C 410 402 440 382 462 356" stroke="none" fill="none"/></mask></defs><g fill="none" stroke="url(#g)" stroke-width="10" stroke-linejoin="round" stroke-linecap="round">
+<path d="M530 68 C490 110 455 160 458 225 C462 275 500 305 540 325 C585 300 605 260 602 215 C598 155 570 110 530 68 Z"/>
+<path d="M372 308 L372 238 L438 200"/><path d="M674 308 L674 238 L608 200"/>
+<path d="M444 487 L515 556 L586 487"/>
+<g id="lf"><path d="M295 440 C298 385 345 335 408 328 C440 325 464 318 478 304 C494 360 492 425 452 468 C410 496 338 484 295 440 Z"/></g>
+<use href="#lf" transform="translate(1046 0) scale(-1 1)"/>
+</g>
+<g fill="url(#g)">
+<path d="M525 128 C500 160 485 192 492 232 C497 258 515 272 527 288 C546 268 563 246 562 216 C561 180 545 155 525 128 Z" mask="url(#rib)"/>
+<path d="M376 414 C412 402 446 378 468 346 C452 388 418 414 376 414 Z" id="bl"/>
+<path d="M376 414 C412 402 446 378 468 346 C452 388 418 414 376 414 Z" transform="translate(1046 0) scale(-1 1)"/>
+<circle cx="518" cy="347" r="16"/></g></svg>
